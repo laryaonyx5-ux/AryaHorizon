@@ -173,6 +173,13 @@ final class DisplayPreferences {
             }
         }
 
+        // This build intentionally reserves horizontal safe space only. The launcher
+        // already fits vertically on this device; top/bottom insets were creating
+        // unwanted black bands and shifting the UI. Keep left/right protection for
+        // the camera cutout and side gesture areas.
+        safe[1] = 0;
+        safe[3] = 0;
+
         int width = frame.width(), height = frame.height();
         if (width <= 0 || height <= 0) return;
         Rect area = new Rect(0, 0, width, height);
