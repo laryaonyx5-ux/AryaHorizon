@@ -1187,7 +1187,7 @@ impl Launcher {
         self.targets.push((eq_btn_rect, Action::OpenControlEditor));
 
         let brand_w = (eq_btn_rect[0] - 66.0).max(70.0);
-        ui.text(Face::SemiBold, 16.0, 54.0, 10.0, my3_text(), "Starling");
+        ui.text(Face::SemiBold, 16.0, 54.0, 10.0, my3_text(), "AryaHorizon");
         let fitted_version = ui.fit_text(Face::Regular, 11.0, &self.app_version, brand_w);
         ui.text(
             Face::Regular,
@@ -1485,7 +1485,7 @@ impl Launcher {
                         [content_x + 12.0, btn_y + 4.0, play_w - 24.0, 26.0],
                         my3_text(),
                         if installed {
-                            "Starting Starling…"
+                            "Starting AryaHorizon…"
                         } else {
                             "Opening setup…"
                         },
@@ -1500,7 +1500,7 @@ impl Launcher {
                         } else if installed {
                             "Play Minecraft 26.3"
                         } else {
-                            "Set up Starling"
+                            "Set up AryaHorizon"
                         },
                         Action::Play,
                         true,
@@ -2109,7 +2109,7 @@ impl Launcher {
                 x + 22.0,
                 y + 24.0,
                 my3_text(),
-                "Exit Starling?",
+                "Exit AryaHorizon?",
             );
             let bw = (width - 52.0) * 0.5;
             button(
