@@ -162,6 +162,65 @@ fn mojang_skin_url(agent: &ureq::Agent, name: &str) -> Option<String> {
     .then(|| url.to_owned())
 }
 
+/// Download the full public Java skin belonging to an existing Mojang username.
+/// Used only for local/offline accounts; it does not sign in or alter any online account.
+pub fn download_profile_skin(name: &str) -> Result<(Vec<u8>, bool), String> {
+    let name = name.trim();
+    if name.is_empty()
+        || name.len() > 16
+        || !name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+    {
+        return Err("Enter a valid Minecraft Java username.".into());
+    }
+    let agent = agent();
+    let profile: serde_json::Value = agent
+        .get(&format!("https://api.mojang.com/users/profiles/minecraft/{name}"))
+        .call()
+        .map_err(|_| "No public Minecraft profile was found for this username.".to_string())?
+        .into_string()
+        .map_err(|_| "Could not read the Minecraft profile.".to_string())
+        .and_then(|s| serde_json::from_str(&s).map_err(|_| "Invalid Minecraft profile.".to_string()))?;
+    let id = profile.get("id").and_then(|v| v.as_str())
+        .ok_or("No public Minecraft profile was found for this username.")?;
+    let session: serde_json::Value = agent
+        .get(&format!("https://sessionserver.mojang.com/session/minecraft/profile/{id}"))
+        .call()
+        .map_err(|_| "Could not retrieve this Minecraft profile's skin.".to_string())?
+        .into_string()
+        .map_err(|_| "Could not read the Minecraft skin profile.".to_string())
+        .and_then(|s| serde_json::from_str(&s).map_err(|_| "Invalid Minecraft skin profile.".to_string()))?;
+    let encoded = session.get("properties").and_then(|v| v.as_array())
+        .and_then(|a| a.iter().find(|p| p.get("name").and_then(|v| v.as_str()) == Some("textures")))
+        .and_then(|p| p.get("value")).and_then(|v| v.as_str())
+        .ok_or("This Minecraft profile does not have a public skin.")?;
+    let payload: serde_json::Value = serde_json::from_slice(
+        &crate::ha_launcher::client::skins::base64_decode(encoded)
+            .ok_or("Could not decode the Minecraft skin profile.")?
+    ).map_err(|_| "Invalid Minecraft skin data.".to_string())?;
+    let texture = payload.pointer("/textures/SKIN")
+        .ok_or("This Minecraft profile does not have a public skin.")?;
+    let url = texture.get("url").and_then(|v| v.as_str())
+        .ok_or("This Minecraft profile does not have a public skin.")?;
+    if !(url.starts_with("https://textures.minecraft.net/")
+        || url.starts_with("http://textures.minecraft.net/"))
+    {
+        return Err("The Minecraft skin URL was not trusted.".into());
+    }
+    let slim = texture.pointer("/metadata/model").and_then(|v| v.as_str()) == Some("slim");
+    let mut png = Vec::new();
+    agent.get(url).call()
+        .map_err(|_| "Could not download the Minecraft skin image.".to_string())?
+        .into_reader()
+        .take((crate::ha_launcher::client::skins::MAX_IMPORT_BYTES + 1) as u64)
+        .read_to_end(&mut png)
+        .map_err(|_| "Could not read the Minecraft skin image.".to_string())?;
+    crate::ha_launcher::client::skins::read_skin(&png)?;
+    if png.len() > crate::ha_launcher::client::skins::MAX_IMPORT_BYTES {
+        return Err("The Minecraft skin image is too large.".into());
+    }
+    Ok((png, slim))
+}
+
 fn pixel(w: u32, h: u32, rgba: &[u8], x: u32, y: u32) -> Option<(u32, u8)> {
     if x >= w || y >= h {
         return None;
