@@ -3,6 +3,7 @@ package io.github.juanluci.starling;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Point;
+import android.graphics.Insets;
 import android.graphics.Rect;
 import android.os.Build;
 import android.view.DisplayCutout;
@@ -131,6 +132,40 @@ final class DisplayPreferences {
                 notch.getSafeInsetLeft(), notch.getSafeInsetTop(),
                 notch.getSafeInsetRight(), notch.getSafeInsetBottom()
         };
+
+        // Include Android's status/navigation bars and gesture edges as well as the camera
+        // cutout. The bars are hidden in immersive mode, but can briefly reappear on a swipe;
+        // the game's HUD and touch controls should stay outside those system-owned areas.
+        WindowInsets rootInsets = window.getDecorView().getRootWindowInsets();
+        if (rootInsets != null) {
+            int[] systemSafe = new int[4];
+            if (Build.VERSION.SDK_INT >= 30) {
+                Insets bars = rootInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+                Insets gestures = rootInsets.getInsets(WindowInsets.Type.systemGestures());
+                Insets mandatory = rootInsets.getInsets(WindowInsets.Type.mandatorySystemGestures());
+                systemSafe[0] = Math.max(bars.left, Math.max(gestures.left, mandatory.left));
+                systemSafe[1] = Math.max(bars.top, Math.max(gestures.top, mandatory.top));
+                systemSafe[2] = Math.max(bars.right, Math.max(gestures.right, mandatory.right));
+                systemSafe[3] = Math.max(bars.bottom, Math.max(gestures.bottom, mandatory.bottom));
+            } else {
+                systemSafe[0] = rootInsets.getSystemWindowInsetLeft();
+                systemSafe[1] = rootInsets.getSystemWindowInsetTop();
+                systemSafe[2] = rootInsets.getSystemWindowInsetRight();
+                systemSafe[3] = rootInsets.getSystemWindowInsetBottom();
+                if (Build.VERSION.SDK_INT >= 29) {
+                    Insets gestures = rootInsets.getSystemGestureInsets();
+                    Insets mandatory = rootInsets.getMandatorySystemGestureInsets();
+                    systemSafe[0] = Math.max(systemSafe[0], Math.max(gestures.left, mandatory.left));
+                    systemSafe[1] = Math.max(systemSafe[1], Math.max(gestures.top, mandatory.top));
+                    systemSafe[2] = Math.max(systemSafe[2], Math.max(gestures.right, mandatory.right));
+                    systemSafe[3] = Math.max(systemSafe[3], Math.max(gestures.bottom, mandatory.bottom));
+                }
+            }
+            for (int i = 0; i < safe.length; i++) {
+                safe[i] = Math.max(safe[i], systemSafe[i]);
+            }
+        }
+
         int width = frame.width(), height = frame.height();
         if (width <= 0 || height <= 0) return;
         Rect area = new Rect(0, 0, width, height);
