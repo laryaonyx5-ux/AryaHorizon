@@ -180,6 +180,11 @@ final class DisplayPreferences {
         safe[1] = 0;
         safe[3] = 0;
 
+        // This fork wants horizontal safe margins only. Keep the top and bottom
+        // edge full-height; only protect the selfie-camera / side gesture areas.
+        safe[1] = 0;
+        safe[3] = 0;
+
         int width = frame.width(), height = frame.height();
         if (width <= 0 || height <= 0) return;
         Rect area = new Rect(0, 0, width, height);
