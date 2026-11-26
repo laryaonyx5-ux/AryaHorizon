@@ -470,6 +470,31 @@ impl Launcher {
             {
                 log::warn!("Launcher: could not apply wardrobe choice: {error}");
             }
+            // A local/offline account uses the public skin attached to its Minecraft
+            // username. A skin explicitly chosen in the wardrobe remains the user's override.
+            if crate::ha_launcher::account::Accounts::load().selected().is_none()
+                && !self.wardrobe.has_selected_skin(&self.catalog.config.name)
+            {
+                match crate::ha_launcher::skin_head::download_profile_skin(&self.catalog.config.name) {
+                    Ok((png, slim)) => {
+                        let cache = self.home.join("profile-skins");
+                        let safe_name: String = self.catalog.config.name.to_ascii_lowercase()
+                            .chars()
+                            .filter(|c| c.is_ascii_alphanumeric() || *c == '_')
+                            .take(16)
+                            .collect();
+                        let path = cache.join(format!("{safe_name}.png"));
+                        let applied = std::fs::create_dir_all(&cache)
+                            .and_then(|_| std::fs::write(&path, png))
+                            .map_err(|e| e.to_string())
+                            .and_then(|_| crate::ha_launcher::appearance::wear(&game_home, Some(&path), slim));
+                        if let Err(error) = applied {
+                            log::warn!("Launcher: could not apply username skin: {error}");
+                        }
+                    }
+                    Err(error) => log::info!("Launcher: username skin not applied: {error}"),
+                }
+            }
             self.controller_edges = Default::default();
             self.controller_repeat = None;
         }
