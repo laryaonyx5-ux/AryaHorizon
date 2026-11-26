@@ -211,11 +211,11 @@ pub fn download_profile_skin(name: &str) -> Result<(Vec<u8>, bool), String> {
     agent.get(url).call()
         .map_err(|_| "Could not download the Minecraft skin image.".to_string())?
         .into_reader()
-        .take((crate::ha_launcher::client::skins::MAX_IMPORT_BYTES + 1) as u64)
+        .take((crate::ha_launcher::skins::MAX_IMPORT_BYTES + 1) as u64)
         .read_to_end(&mut png)
         .map_err(|_| "Could not read the Minecraft skin image.".to_string())?;
-    crate::ha_launcher::client::skins::read_skin(&png)?;
-    if png.len() > crate::ha_launcher::client::skins::MAX_IMPORT_BYTES {
+    crate::ha_launcher::skins::read_skin(&png)?;
+    if png.len() > crate::ha_launcher::skins::MAX_IMPORT_BYTES {
         return Err("The Minecraft skin image is too large.".into());
     }
     Ok((png, slim))
