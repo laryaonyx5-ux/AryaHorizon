@@ -386,6 +386,16 @@ impl Wardrobe {
             let _ = sender.send((key, result));
         });
     }
+    /// Whether this offline profile has a user-selected wardrobe skin. Such a choice
+    /// takes precedence over the username's public Mojang skin.
+    pub fn has_selected_skin(&self, offline: &str) -> bool {
+        let key = Accounts::load()
+            .selected()
+            .map(|a| a.key())
+            .unwrap_or_else(|| format!("offline:{}", offline.to_ascii_lowercase()));
+        self.library.selections.get(&key).is_some_and(|selection| selection.skin.is_some())
+    }
+
     pub fn prepare_game(&mut self, offline: &str, game: &Path) -> Result<(), String> {
         let key = Accounts::load()
             .selected()
