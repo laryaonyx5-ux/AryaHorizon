@@ -103,10 +103,16 @@ final class DisplayPreferences {
         WindowManager.LayoutParams attrs = window.getAttributes();
         Rect frame;
         DisplayCutout notch = null;
+        WindowInsets stableInsets = null;
         if (Build.VERSION.SDK_INT >= 30) {
-            WindowMetrics metrics = activity.getWindowManager().getCurrentWindowMetrics();
+            // Always calculate from the display's maximum app window. Current metrics
+            // shrink after setAttributes() crops this window to the safe area; reading
+            // them again would alternate between full and cropped bounds and make HUD
+            // controls jump/flicker on every insets callback.
+            WindowMetrics metrics = activity.getWindowManager().getMaximumWindowMetrics();
             frame = metrics.getBounds();
-            notch = metrics.getWindowInsets().getDisplayCutout();
+            stableInsets = metrics.getWindowInsets();
+            notch = stableInsets.getDisplayCutout();
         } else {
             Point size = new Point();
             activity.getWindowManager().getDefaultDisplay().getRealSize(size);
@@ -136,7 +142,8 @@ final class DisplayPreferences {
         // Build a safe window for the whole launcher/game UI: camera cutout, status/navigation
         // bars and gesture edges. System bars are immersive, but can reappear on swipe;
         // keeping the window inside their insets protects both rendered UI and touch targets.
-        WindowInsets rootInsets = window.getDecorView().getRootWindowInsets();
+        WindowInsets rootInsets = stableInsets != null
+                ? stableInsets : window.getDecorView().getRootWindowInsets();
         if (rootInsets != null) {
             int[] systemSafe = new int[4];
             if (Build.VERSION.SDK_INT >= 30) {
