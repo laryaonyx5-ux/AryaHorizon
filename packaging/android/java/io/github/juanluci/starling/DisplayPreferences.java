@@ -133,9 +133,9 @@ final class DisplayPreferences {
                 notch.getSafeInsetRight(), notch.getSafeInsetBottom()
         };
 
-        // Include Android's status/navigation bars and gesture edges as well as the camera
-        // cutout. The bars are hidden in immersive mode, but can briefly reappear on a swipe;
-        // the game's HUD and touch controls should stay outside those system-owned areas.
+        // Build a safe window for the whole launcher/game UI: camera cutout, status/navigation
+        // bars and gesture edges. System bars are immersive, but can reappear on swipe;
+        // keeping the window inside their insets protects both rendered UI and touch targets.
         WindowInsets rootInsets = window.getDecorView().getRootWindowInsets();
         if (rootInsets != null) {
             int[] systemSafe = new int[4];
@@ -169,7 +169,7 @@ final class DisplayPreferences {
         int width = frame.width(), height = frame.height();
         if (width <= 0 || height <= 0) return;
         Rect area = new Rect(0, 0, width, height);
-        if (cutout == 1 && safe[0] + safe[2] < width && safe[1] + safe[3] < height) {
+        if (safe[0] + safe[2] < width && safe[1] + safe[3] < height) {
             area.set(safe[0], safe[1], width - safe[2], height - safe[3]);
         }
         if (aspectWidth > 0 && aspectHeight > 0) {
