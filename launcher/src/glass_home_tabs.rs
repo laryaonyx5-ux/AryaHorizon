@@ -142,6 +142,21 @@ impl Launcher {
             .when(!wide, |d| d.w_full())
             .min_h(px(BODY))
             .child(self.patch_log(cx));
+
+        // Native mods used to expose their build controls only in the Mods tab. Put the same
+        // build card on Play's Overview as well, so a player can build the selected instance
+        // without hunting for a separate tab. The instance list is populated by home_tab_list.
+        let has_native = self.selected_instance().is_some_and(|instance| instance.java.is_none())
+            && self.instance_mods.fresh
+            && self.instance_mods.list.iter().any(|row| {
+                row.native.is_some()
+                    || row
+                        .entry
+                        .as_ref()
+                        .is_some_and(|entry| crate::native_status::is_native_file(&entry.file))
+            });
+        let native_build = has_native.then(|| self.native_build(cx)).flatten();
+
         div()
             .flex()
             .flex_col()
@@ -156,6 +171,7 @@ impl Launcher {
                     .child(patch),
             )
             .child(rows)
+            .children(native_build)
     }
 
     /// The game log while this instance prepares, starts or runs (the mockup's, over the
